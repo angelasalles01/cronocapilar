@@ -1,40 +1,43 @@
-// Package ID simulado na rede Stellar (demo)
-export const PACKAGE_ID = "0xCRONOCAPILAR_STELLAR_DEMO_ID";
+import { Networks } from "@stellar/stellar-sdk";
 
-// Timestamp de build (atualizar manualmente quando necessário)
-// Formato: YYYY-MM-DD HH:MM:SS UTC
-export const BUILD_TIMESTAMP = new Date().toISOString().replace('T', ' ').substring(0, 19) + " UTC";
+export const STELLAR_NETWORKS = {
+  mainnet: {
+    name: "Mainnet",
+    networkPassphrase: Networks.PUBLIC,
+    horizonUrl: "https://horizon.stellar.org",
+    sorobanRpcUrl: "https://soroban.stellar.org",
+    explorerUrl: "https://stellar.expert/explorer/public",
+  },
+  testnet: {
+    name: "Testnet",
+    networkPassphrase: Networks.TESTNET,
+    horizonUrl: "https://horizon-testnet.stellar.org",
+    sorobanRpcUrl: "https://soroban-testnet.stellar.org",
+    explorerUrl: "https://stellar.expert/explorer/testnet",
+  },
+} as const;
 
-// Módulo e funções do contrato
+export type StellarNetworkName = keyof typeof STELLAR_NETWORKS;
+
+export const DEFAULT_NETWORK: StellarNetworkName = "testnet";
+
+export const CONTRACT_ID = ""; // Soroban contract ID (deploy pending)
+
 export const MODULE_NAME = "profile";
 export const FUNCTION_CREATE_PROFILE = "create_profile";
 export const FUNCTION_REGISTER_TREATMENT = "register_treatment";
 export const FUNCTION_REGISTER_EVENT = "register_event";
 
-// Configuração da rede Stellar (https://stellar.org)
-export const STELLAR_NETWORKS = {
-  mainnet: {
-    name: "Stellar Mainnet",
-    chainId: 534352,
-    rpcUrl: "https://horizon.stellar.org",
-    blockExplorer: "https://stellar.expert",
-    currency: "XLM",
-  },
-  testnet: {
-    name: "Stellar Testnet",
-    chainId: 534353,
-    rpcUrl: "https://horizon-testnet.stellar.org",
-    blockExplorer: "https://stellar.expert",
-    currency: "XLM",
-  },
-  sepolia: {
-    name: "Stellar Testnet",
-    chainId: 534351,
-    rpcUrl: "https://horizon-testnet.stellar.org",
-    blockExplorer: "https://stellar.expert",
-    currency: "XLM",
-  },
-};
+export function getNetwork(name?: StellarNetworkName) {
+  return STELLAR_NETWORKS[name ?? DEFAULT_NETWORK];
+}
 
-// Rede padrão (Testnet para desenvolvimento)
-export const DEFAULT_NETWORK = STELLAR_NETWORKS.testnet;
+export function getExplorerAccountUrl(address: string, network?: StellarNetworkName) {
+  const net = getNetwork(network);
+  return `${net.explorerUrl}/account/${address}`;
+}
+
+export function getExplorerTxUrl(hash: string, network?: StellarNetworkName) {
+  const net = getNetwork(network);
+  return `${net.explorerUrl}/tx/${hash}`;
+}

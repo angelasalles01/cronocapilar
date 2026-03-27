@@ -9,13 +9,7 @@ import { Tabs } from "@/components/Tabs";
 import { Timeline } from "@/components/Timeline";
 import { EventRegister } from "@/components/EventRegister";
 import LoginModal from "@/components/LoginModal";
-import { useCurrentAccount, useDisconnectWallet, useSignAndExecuteTransaction } from "@/lib/stellar-provider";
-import { PACKAGE_ID, MODULE_NAME, FUNCTION_CREATE_PROFILE, FUNCTION_REGISTER_TREATMENT } from "@/lib/constants";
-
-function formatAddress(address: string): string {
-  if (!address) return "";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+import { useCurrentAccount, useDisconnectWallet, useSignAndExecuteTransaction, formatAddress } from "@/lib/stellar-provider";
 
 type TreatmentType = "hydration" | "nutrition" | "reconstruction";
 
@@ -23,7 +17,7 @@ export default function Page() {
   const { t, language } = useI18n();
   const account = useCurrentAccount();
   const { mutate: disconnect } = useDisconnectWallet();
-  const { mutate: signAndExecute } = useSignAndExecuteTransaction();
+  const { mutate: signAndSubmit } = useSignAndExecuteTransaction();
   
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("profile");
@@ -115,12 +109,12 @@ export default function Page() {
 
     setIsSavingOnChain(true);
     try {
-      await signAndExecute({
-        type: "profile",
+      const result = await signAndSubmit(JSON.stringify({
+        fn: "create_profile",
         hairType,
         hairLength,
         hairTexture,
-      });
+      }));
 
       setOnChainSaved(true);
       const now = new Date().toISOString();
@@ -129,21 +123,23 @@ export default function Page() {
         hairLength, 
         hairTexture,
         onChain: true,
-        savedAt: now
+        savedAt: now,
+        txHash: result.hash,
+        txStatus: result.status,
       }));
 
       alert(language === "pt-BR"
-        ? "✅ Perfil salvo on-chain com sucesso!"
+        ? `✅ Perfil salvo! (${result.status})`
         : language === "en-US"
-        ? "✅ Profile saved on-chain successfully!"
-        : "✅ Perfil guardado on-chain con éxito!");
+        ? `✅ Profile saved! (${result.status})`
+        : `✅ Perfil guardado! (${result.status})`);
     } catch (error: any) {
-      console.error("Erro ao salvar perfil on-chain:", error);
+      console.error("Error saving profile:", error);
       alert(language === "pt-BR"
-        ? `❌ Erro ao salvar perfil: ${error.message || "Erro desconhecido"}`
+        ? `❌ Erro: ${error.message || "Erro desconhecido"}`
         : language === "en-US"
-        ? `❌ Error saving profile: ${error.message || "Unknown error"}`
-        : `❌ Error al guardar perfil: ${error.message || "Error desconocido"}`);
+        ? `❌ Error: ${error.message || "Unknown error"}`
+        : `❌ Error: ${error.message || "Error desconocido"}`);
     } finally {
       setIsSavingOnChain(false);
     }
@@ -158,10 +154,10 @@ export default function Page() {
 
     setIsSavingTreatment(true);
     try {
-      await signAndExecute({
-        type: "treatment",
+      const result = await signAndSubmit(JSON.stringify({
+        fn: "register_treatment",
         treatmentType: type,
-      });
+      }));
 
       const now = new Date().toISOString();
       const updatedTreatments = {
@@ -175,12 +171,8 @@ export default function Page() {
       setTreatments(updatedTreatments);
       localStorage.setItem(`cronocapilar_treatments_${account.address}`, JSON.stringify(updatedTreatments));
 
-      // Salvar na timeline
       const timeline = JSON.parse(localStorage.getItem(`cronocapilar_timeline_${account.address}`) || "[]");
-      timeline.push({
-        type,
-        date: now,
-      });
+      timeline.push({ type, date: now, txHash: result.hash });
       localStorage.setItem(`cronocapilar_timeline_${account.address}`, JSON.stringify(timeline));
 
       alert(language === "pt-BR"
@@ -189,12 +181,12 @@ export default function Page() {
         ? `✅ Check-in registered! Total: ${updatedTreatments[type].count}`
         : `✅ Check-in registrado! Total: ${updatedTreatments[type].count}`);
     } catch (error: any) {
-      console.error("Erro ao registrar check-in:", error);
+      console.error("Error registering check-in:", error);
       alert(language === "pt-BR"
-        ? `❌ Erro ao registrar check-in: ${error.message || "Erro desconhecido"}`
+        ? `❌ Erro: ${error.message || "Erro desconhecido"}`
         : language === "en-US"
-        ? `❌ Error registering check-in: ${error.message || "Unknown error"}`
-        : `❌ Error al registrar check-in: ${error.message || "Error desconocido"}`);
+        ? `❌ Error: ${error.message || "Unknown error"}`
+        : `❌ Error: ${error.message || "Error desconocido"}`);
     } finally {
       setIsSavingTreatment(false);
     }

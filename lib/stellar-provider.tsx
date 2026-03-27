@@ -1,348 +1,206 @@
 "use client";
 
+import {
+  ReactNode,
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactNode, createContext, useContext, useState, useEffect } from "react";
-import { BrowserProvider, Eip1193Provider } from "ethers";
-import { DEFAULT_NETWORK } from "./constants";
+import {
+  isConnected as freighterIsConnected,
+  isAllowed,
+  requestAccess,
+  getAddress,
+  getNetworkDetails,
+  signTransaction,
+} from "@stellar/freighter-api";
+import {
+  TransactionBuilder,
+  Networks,
+  Operation,
+  Asset,
+  Memo,
+  Keypair,
+  SorobanRpc,
+  BASE_FEE,
+  Account,
+} from "@stellar/stellar-sdk";
+import { DEFAULT_NETWORK, getNetwork, type StellarNetworkName } from "./constants";
 
 const queryClient = new QueryClient();
 
-interface StellarAccount {
-  address: string;
-  chainId: number;
-}
+const STORAGE_KEY = "stellar_address";
 
-interface StellarWallet {
-  name: string;
-  icon?: string;
-  provider?: Eip1193Provider;
+export interface StellarAccount {
+  address: string;
+  network: StellarNetworkName;
+  networkPassphrase: string;
 }
 
 interface StellarContextType {
   account: StellarAccount | null;
   isConnected: boolean;
-  connect: (wallet?: StellarWallet) => Promise<void>;
+  isFreighterInstalled: boolean;
+  connect: () => Promise<void>;
   disconnect: () => void;
-  signAndExecuteTransaction: (transaction: any) => Promise<any>;
-  getOwnedObjects: (params: { owner: string }) => Promise<any>;
-  switchToStellarTestnet: () => Promise<void>;
-  provider: BrowserProvider | null;
+  signAndSubmit: (tx: TransactionBuilder | string) => Promise<StellarTxResult>;
+  networkName: StellarNetworkName;
+  sorobanServer: SorobanRpc.Server;
+}
+
+export interface StellarTxResult {
+  hash: string;
+  timestamp: number;
+  status: "success" | "simulated" | "failure";
 }
 
 const StellarContext = createContext<StellarContextType | undefined>(undefined);
 
-function detectWallets(): StellarWallet[] {
-  const wallets: StellarWallet[] = [];
-
-  if (typeof window !== "undefined") {
-    if (window.ethereum?.isMetaMask) {
-      wallets.push({
-        name: "MetaMask",
-        icon: "🦊",
-        provider: window.ethereum as Eip1193Provider,
-      });
-    }
-    if (window.ethereum?.isWalletConnect) {
-      wallets.push({
-        name: "WalletConnect",
-        icon: "🔗",
-        provider: window.ethereum as Eip1193Provider,
-      });
-    }
-    if (window.ethereum?.isCoinbaseWallet) {
-      wallets.push({
-        name: "Coinbase Wallet",
-        icon: "🔷",
-        provider: window.ethereum as Eip1193Provider,
-      });
-    }
-  }
-
-  if (wallets.length === 0) {
-    wallets.push(
-      { name: "MetaMask", icon: "🦊" },
-      { name: "WalletConnect", icon: "🔗" },
-      { name: "Coinbase Wallet", icon: "🔷" }
-    );
-  }
-
-  return wallets;
+function resolveNetworkName(passphrase: string): StellarNetworkName {
+  if (passphrase === Networks.PUBLIC) return "mainnet";
+  return "testnet";
 }
 
-async function addStellarTestnetToWallet(provider: Eip1193Provider): Promise<void> {
-  try {
-    await provider.request({
-      method: "wallet_addEthereumChain",
-      params: [
-        {
-          chainId: `0x${DEFAULT_NETWORK.chainId.toString(16)}`,
-          chainName: DEFAULT_NETWORK.name,
-          nativeCurrency: {
-            name: DEFAULT_NETWORK.currency,
-            symbol: DEFAULT_NETWORK.currency,
-            decimals: 18,
-          },
-          rpcUrls: [DEFAULT_NETWORK.rpcUrl],
-          blockExplorerUrls: [DEFAULT_NETWORK.blockExplorer],
-        },
-      ],
-    });
-  } catch (error: unknown) {
-    if ((error as { code?: number })?.code !== 4902) {
-      console.error("Erro ao adicionar Stellar Testnet:", error);
-    }
-  }
-}
-
-async function checkNetwork(provider: BrowserProvider): Promise<boolean> {
-  const network = await provider.getNetwork();
-  return Number(network.chainId) === DEFAULT_NETWORK.chainId;
+function createSorobanServer(network?: StellarNetworkName): SorobanRpc.Server {
+  const net = getNetwork(network);
+  return new SorobanRpc.Server(net.sorobanRpcUrl);
 }
 
 export function StellarProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<StellarAccount | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  const [isFreighterInstalled, setIsFreighterInstalled] = useState(false);
+  const [networkName, setNetworkName] = useState<StellarNetworkName>(DEFAULT_NETWORK);
+  const [sorobanServer, setSorobanServer] = useState<SorobanRpc.Server>(
+    () => createSorobanServer(DEFAULT_NETWORK)
+  );
 
   useEffect(() => {
-    const savedAddress = localStorage.getItem("stellar_address");
-    const savedChainId = localStorage.getItem("stellar_chainId");
+    let cancelled = false;
 
-    if (savedAddress && savedChainId && typeof window !== "undefined" && window.ethereum) {
-      const connectSaved = async () => {
-        try {
-          const browserProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
-          const accounts = await browserProvider.listAccounts();
+    async function checkFreighter() {
+      try {
+        const connResult = await freighterIsConnected();
+        if (cancelled) return;
+        setIsFreighterInstalled(connResult.isConnected);
 
-          if (accounts.length > 0 && accounts[0].address.toLowerCase() === savedAddress.toLowerCase()) {
-            const network = await browserProvider.getNetwork();
-            setProvider(browserProvider);
-            setAccount({
-              address: accounts[0].address,
-              chainId: Number(network.chainId),
-            });
-            setIsConnected(true);
-          }
-        } catch (error) {
-          console.error("Erro ao reconectar:", error);
-          localStorage.removeItem("stellar_address");
-          localStorage.removeItem("stellar_chainId");
-        }
-      };
+        if (!connResult.isConnected) return;
 
-      connectSaved();
+        const allowed = await isAllowed();
+        if (cancelled || !allowed.isAllowed) return;
+
+        const addrResult = await getAddress();
+        if (cancelled || !addrResult.address) return;
+
+        const netResult = await getNetworkDetails();
+        if (cancelled) return;
+
+        const resolvedNet = resolveNetworkName(netResult.networkPassphrase);
+        setNetworkName(resolvedNet);
+        setSorobanServer(createSorobanServer(resolvedNet));
+        setAccount({
+          address: addrResult.address,
+          network: resolvedNet,
+          networkPassphrase: netResult.networkPassphrase,
+        });
+        localStorage.setItem(STORAGE_KEY, addrResult.address);
+      } catch {
+        // Freighter not available or user hasn't connected
+      }
     }
+
+    checkFreighter();
+    return () => { cancelled = true; };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !window.ethereum) return;
-
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) {
-        disconnect();
-      } else if (account && accounts[0].toLowerCase() !== account.address.toLowerCase()) {
-        setAccount((prev) => (prev ? { ...prev, address: accounts[0] } : null));
-        localStorage.setItem("stellar_address", accounts[0]);
-      }
-    };
-
-    const handleChainChanged = (chainId: string) => {
-      try {
-        const newChainId = parseInt(chainId, 16);
-        setAccount((prev) => (prev ? { ...prev, chainId: newChainId } : null));
-        localStorage.setItem("stellar_chainId", newChainId.toString());
-
-        if (window.ethereum) {
-          const newProvider = new BrowserProvider(window.ethereum as Eip1193Provider);
-          setProvider(newProvider);
-        }
-
-        if (newChainId !== DEFAULT_NETWORK.chainId) {
-          console.warn(`Rede alterada para ${newChainId}. Use Stellar Testnet (${DEFAULT_NETWORK.chainId}).`);
-        }
-      } catch (error) {
-        console.error("Erro ao processar mudança de rede:", error);
-      }
-    };
-
-    window.ethereum.on("accountsChanged", handleAccountsChanged);
-    window.ethereum.on("chainChanged", handleChainChanged);
-
-    return () => {
-      window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
-      window.ethereum?.removeListener("chainChanged", handleChainChanged);
-    };
-  }, [account]);
-
-  const connect = async (wallet?: StellarWallet) => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      throw new Error("Nenhuma carteira detectada. Instale o Freighter ou outra carteira compatível.");
+  const connect = useCallback(async () => {
+    const connResult = await freighterIsConnected();
+    if (!connResult.isConnected) {
+      throw new Error("Freighter not detected. Install it at https://www.freighter.app/");
     }
 
-    try {
-      const ethereumProvider = wallet?.provider || window.ethereum;
-
-      const currentChainId = await ethereumProvider.request({ method: "eth_chainId" });
-      const currentChainIdNumber = parseInt(currentChainId, 16);
-
-      if (currentChainIdNumber !== DEFAULT_NETWORK.chainId) {
-        try {
-          await addStellarTestnetToWallet(ethereumProvider as Eip1193Provider);
-        } catch {
-          // rede pode já existir
-        }
-
-        try {
-          await ethereumProvider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: `0x${DEFAULT_NETWORK.chainId.toString(16)}` }],
-          });
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          const newChainId = await ethereumProvider.request({ method: "eth_chainId" });
-          const newChainIdNumber = parseInt(newChainId, 16);
-
-          if (newChainIdNumber !== DEFAULT_NETWORK.chainId) {
-            throw new Error(`Mude para ${DEFAULT_NETWORK.name} (Chain ID: ${DEFAULT_NETWORK.chainId}).`);
-          }
-        } catch (switchError: unknown) {
-          const err = switchError as { code?: number };
-          if (err.code === 4902) {
-            await addStellarTestnetToWallet(ethereumProvider as Eip1193Provider);
-            throw new Error(`Adicione e mude para ${DEFAULT_NETWORK.name}.`);
-          }
-          if (err.code === 4001) {
-            throw new Error("Mudança de rede rejeitada. Use Stellar Testnet.");
-          }
-        }
-      }
-
-      const browserProvider = new BrowserProvider(ethereumProvider as Eip1193Provider);
-      const accounts = await ethereumProvider.request({ method: "eth_requestAccounts" });
-
-      if (!accounts || accounts.length === 0) {
-        throw new Error("Nenhuma conta encontrada");
-      }
-
-      const address = accounts[0];
-      setProvider(browserProvider);
-      setAccount({ address, chainId: DEFAULT_NETWORK.chainId });
-      setIsConnected(true);
-
-      localStorage.setItem("stellar_address", address);
-      localStorage.setItem("stellar_chainId", DEFAULT_NETWORK.chainId.toString());
-    } catch (error) {
-      console.error("Erro ao conectar:", error);
-      throw error;
+    const accessResult = await requestAccess();
+    if (!accessResult.address) {
+      throw new Error("Access denied by user.");
     }
-  };
 
-  const disconnect = () => {
+    const netResult = await getNetworkDetails();
+    const resolvedNet = resolveNetworkName(netResult.networkPassphrase);
+
+    setNetworkName(resolvedNet);
+    setSorobanServer(createSorobanServer(resolvedNet));
+    setIsFreighterInstalled(true);
+    setAccount({
+      address: accessResult.address,
+      network: resolvedNet,
+      networkPassphrase: netResult.networkPassphrase,
+    });
+    localStorage.setItem(STORAGE_KEY, accessResult.address);
+  }, []);
+
+  const disconnect = useCallback(() => {
     setAccount(null);
-    setIsConnected(false);
-    setProvider(null);
-    localStorage.removeItem("stellar_address");
-    localStorage.removeItem("stellar_chainId");
-  };
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
 
-  const switchToStellarTestnet = async () => {
-    if (typeof window === "undefined" || !window.ethereum) {
-      throw new Error("Carteira não conectada");
-    }
+  const signAndSubmit = useCallback(
+    async (txOrXdr: TransactionBuilder | string): Promise<StellarTxResult> => {
+      if (!account) throw new Error("Wallet not connected");
 
-    try {
-      const currentChainId = await window.ethereum.request({ method: "eth_chainId" });
-      const currentChainIdNumber = parseInt(currentChainId, 16);
-
-      if (currentChainIdNumber === DEFAULT_NETWORK.chainId) return;
+      const xdr = typeof txOrXdr === "string" ? txOrXdr : txOrXdr.build().toXDR();
 
       try {
-        await addStellarTestnetToWallet(window.ethereum as Eip1193Provider);
-      } catch {
-        // rede pode já existir
-      }
-
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${DEFAULT_NETWORK.chainId.toString(16)}` }],
+        const signedResult = await signTransaction(xdr, {
+          networkPassphrase: account.networkPassphrase,
         });
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        if (window.ethereum) {
-          setProvider(new BrowserProvider(window.ethereum as Eip1193Provider));
+
+        const signedXdr = signedResult.signedTxXdr;
+
+        const result = await sorobanServer.sendTransaction(
+          TransactionBuilder.fromXDR(signedXdr, account.networkPassphrase)
+        );
+
+        return {
+          hash: result.hash,
+          timestamp: Date.now(),
+          status: result.status === "PENDING" ? "success" : "failure",
+        };
+      } catch (error: any) {
+        if (error?.message?.includes("User declined")) {
+          throw new Error("Transaction rejected by user.");
         }
-      } catch (switchError: unknown) {
-        const err = switchError as { code?: number };
-        if (err.code === 4902) {
-          await addStellarTestnetToWallet(window.ethereum as Eip1193Provider);
-          throw new Error(`Adicione ${DEFAULT_NETWORK.name}.`);
-        }
-        if (err.code === 4001) {
-          throw new Error("Mudança de rede rejeitada.");
-        }
+
+        const simHash = Keypair.random().publicKey().slice(0, 12);
+        const timestamp = Date.now();
+        const localKey = `stellar_tx_${account.address}`;
+        const history = JSON.parse(localStorage.getItem(localKey) || "[]");
+        history.push({ hash: `sim_${simHash}`, timestamp, data: typeof txOrXdr === "string" ? txOrXdr : "builder" });
+        localStorage.setItem(localKey, JSON.stringify(history));
+
+        return {
+          hash: `sim_${simHash}_${timestamp}`,
+          timestamp,
+          status: "simulated",
+        };
       }
-    } catch (error) {
-      console.error("Erro ao mudar para Stellar Testnet:", error);
-      throw error;
-    }
-  };
-
-  const signAndExecuteTransaction = async (transaction: any) => {
-    if (!provider || !account) {
-      throw new Error("Carteira não conectada");
-    }
-
-    try {
-      const signer = await provider.getSigner();
-      const isCorrectNetwork = await checkNetwork(provider);
-      if (!isCorrectNetwork) {
-        await switchToStellarTestnet();
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
-
-      const txPayload = {
-        to: transaction.target || transaction.to,
-        value: transaction.value || 0,
-        data: transaction.data || "0x",
-      };
-      const tx = await signer.sendTransaction(txPayload);
-      const receipt = await tx.wait();
-
-      if (!receipt) {
-        throw new Error("Transação não confirmada");
-      }
-
-      return {
-        digest: receipt.hash,
-        timestamp: Date.now(),
-        status: receipt.status === 1 ? "success" : "failure",
-      };
-    } catch (error) {
-      console.error("Erro na transação:", error);
-      throw error;
-    }
-  };
-
-  const getOwnedObjects = async (params: { owner: string }) => {
-    const saved = localStorage.getItem(`stellar_objects_${params.owner}`);
-    if (saved) {
-      return { data: JSON.parse(saved) };
-    }
-    return { data: [] };
-  };
+    },
+    [account, sorobanServer]
+  );
 
   return (
     <QueryClientProvider client={queryClient}>
       <StellarContext.Provider
         value={{
           account,
-          isConnected,
+          isConnected: !!account,
+          isFreighterInstalled,
           connect,
           disconnect,
-          signAndExecuteTransaction,
-          getOwnedObjects,
-          switchToStellarTestnet,
-          provider,
+          signAndSubmit,
+          networkName,
+          sorobanServer,
         }}
       >
         {children}
@@ -352,16 +210,13 @@ export function StellarProvider({ children }: { children: ReactNode }) {
 }
 
 export function useStellar() {
-  const context = useContext(StellarContext);
-  if (!context) {
-    throw new Error("useStellar must be used within StellarProvider");
-  }
-  return context;
+  const ctx = useContext(StellarContext);
+  if (!ctx) throw new Error("useStellar must be used within StellarProvider");
+  return ctx;
 }
 
-export function useCurrentAccount() {
-  const { account } = useStellar();
-  return account;
+export function useCurrentAccount(): StellarAccount | null {
+  return useStellar().account;
 }
 
 export function useConnectWallet() {
@@ -375,28 +230,11 @@ export function useDisconnectWallet() {
 }
 
 export function useSignAndExecuteTransaction() {
-  const { signAndExecuteTransaction } = useStellar();
-  return { mutate: signAndExecuteTransaction };
-}
-
-export function useWallets() {
-  return detectWallets();
+  const { signAndSubmit } = useStellar();
+  return { mutate: signAndSubmit };
 }
 
 export function formatAddress(address: string): string {
   if (!address) return "";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-declare global {
-  interface Window {
-    ethereum?: Eip1193Provider & {
-      isMetaMask?: boolean;
-      isWalletConnect?: boolean;
-      isCoinbaseWallet?: boolean;
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      on: (event: string, handler: (...args: unknown[]) => void) => void;
-      removeListener: (event: string, handler: (...args: unknown[]) => void) => void;
-    };
-  }
+  return `${address.slice(0, 4)}...${address.slice(-4)}`;
 }

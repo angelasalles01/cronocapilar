@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CronoCapilar — Proof of Care</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inconsolata:wght@500&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --bg: #080c14;
+      --bg-card: #0f1419;
+      --bg-elevated: #151b24;
+      --border: rgba(255, 255, 255, 0.06);
+      --text: #f0f2f5;
+      --text-muted: #8b95a5;
+      --primary: #00d4aa;
+      --primary-dim: rgba(0, 212, 170, 0.15);
+      --accent: #6366f1;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Header — minimal, como Stellar Passport */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 1.125rem;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+    .header-links a {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .header-links a:hover { color: var(--primary); }
+    .btn-cta {
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-cta:hover { opacity: 0.9; }
+
+    /* Hero — estilo Builder Profiles */
+    .hero {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 4rem 2rem 3rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+      line-height: 1.2;
+    }
+    .hero p {
+      font-size: 1.125rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+    }
+    .btn-primary {
+      padding: 0.65rem 1.25rem;
+      background: var(--primary);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary {
+      padding: 0.65rem 1.25rem;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-secondary:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+
+    /* Content — cards leves */
+    .content {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 2rem 4rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem 1.75rem;
+      margin-bottom: 1rem;
+    }
+    .card-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .profile-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pill {
+      padding: 0.5rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+    .pill:hover { color: var(--text); border-color: rgba(255,255,255,0.12); }
+    .pill.active {
+      background: var(--primary-dim);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .poc-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .poc-label { font-size: 0.875rem; color: var(--text-muted); }
+    .poc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--primary-dim);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    .hnr-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+    @media (max-width: 520px) { .hnr-grid { grid-template-columns: 1fr; } }
+    .hnr-btn {
+      padding: 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .hnr-btn:hover { border-color: var(--primary); background: var(--primary-dim); }
+    .hnr-btn.h { border-top: 2px solid #34d399; }
+    .hnr-btn.n { border-top: 2px solid #fbbf24; }
+    .hnr-btn.r { border-top: 2px solid #f87171; }
+    .streak {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .streak strong { color: var(--primary); }
+    .timeline-list { margin-top: 0.5rem; }
+    .timeline-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+    }
+    .timeline-item:last-child { border-bottom: none; }
+    .timeline-date {
+      font-family: 'Inconsolata', monospace;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+    .timeline-type { color: var(--primary); font-weight: 500; }
+
+    /* Tabs discretos */
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--primary); background: var(--primary-dim); }
+
+    /* Footer minimal */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .footer a { color: var(--primary); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <span class="logo">CronoCapilar</span>
+    <div class="header-links">
+      <a href="https://stellar.org" target="_blank" rel="noopener">Built on Stellar</a>
+      <button type="button" class="btn-cta">Entrar</button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Proof of Care</h1>
+    <p>Sua jornada capilar verificável on-chain. Reputação real, não algoritmos.</p>
+    <div class="hero-actions">
+      <button type="button" class="btn-primary">Criar perfil</button>
+      <button type="button" class="btn-secondary">Registrar tratamento</button>
+    </div>
+  </section>
+
+  <main class="content">
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-tab="profile" role="tab">Perfil</button>
+      <button type="button" class="tab" data-tab="checkin" role="tab">Check-in</button>
+      <button type="button" class="tab" data-tab="timeline" role="tab">Timeline</button>
+    </div>
+
+    <section id="panel-profile" class="panel">
+      <div class="card">
+        <h2 class="card-title">Perfil capilar</h2>
+        <div class="profile-pills">
+          <button type="button" class="pill active">Crespo</button>
+          <button type="button" class="pill">Cacheado</button>
+          <button type="button" class="pill">Ondulado</button>
+          <button type="button" class="pill">Longo</button>
+          <button type="button" class="pill">Médio</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="poc-row">
+          <span class="poc-label">Proof of Care</span>
+          <span class="poc-badge">Passaporte Soulbound · Bloom</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-checkin" class="panel" hidden>
+      <div class="card">
+        <h2 class="card-title">Registrar tratamento (H/N/R)</h2>
+        <div class="hnr-grid">
+          <button type="button" class="hnr-btn h">H — Hidratação</button>
+          <button type="button" class="hnr-btn n">N — Nutrição</button>
+          <button type="button" class="hnr-btn r">R — Reconstrução</button>
+        </div>
+        <p class="streak">Sequência: <strong>7 dias</strong></p>
+      </div>
+    </section>
+
+    <section id="panel-timeline" class="panel" hidden>
+      <div class="card">
+        <h2 class="card-title">Timeline</h2>
+        <div class="timeline-list">
+          <div class="timeline-item">
+            <span class="timeline-type">Hidratação</span>
+            <span class="timeline-date">17 mar 2026</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-type">Nutrição</span>
+            <span class="timeline-date">16 mar 2026</span>
+          </div>
+          <div class="timeline-item">
+            <span class="timeline-type">Hidratação</span>
+            <span class="timeline-date">15 mar 2026</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    MOC ilustrativo · <a href="https://stellar.org">Stellar</a> · <a href="https://design-system.stellar.org">Design System</a>
+  </footer>
+
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.setAttribute('hidden', ''));
+        tab.classList.add('active');
+        const panel = document.getElementById('panel-' + tab.getAttribute('data-tab'));
+        if (panel) panel.removeAttribute('hidden');
+      });
+    });
+    document.querySelectorAll('.pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        pill.parentElement.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
