@@ -1,0 +1,207 @@
+/* Tema Web3 Feminino — compartilhado */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+:root {
+  --w3-bg: #0c0a15;
+  --w3-surface: rgba(255, 255, 255, 0.04);
+  --w3-glass: rgba(255, 255, 255, 0.06);
+  --w3-glass-border: rgba(255, 255, 255, 0.1);
+  --w3-purple: #c084fc;
+  --w3-pink: #f472b6;
+  --w3-teal: #5eead4;
+  --w3-rose: #fda4af;
+  --w3-lavender: #a78bfa;
+  --w3-text: #f8f4ff;
+  --w3-muted: #a89ec4;
+  --w3-card-bg: rgba(255, 255, 255, 0.05);
+  --w3-card-hover: rgba(192, 132, 252, 0.1);
+  --w3-border: rgba(192, 132, 252, 0.2);
+  --w3-glow: 0 0 40px rgba(192, 132, 252, 0.15);
+  --w3-glow-pink: 0 0 60px rgba(244, 114, 182, 0.12);
+  --w3-gradient: linear-gradient(135deg, #c084fc, #f472b6, #5eead4);
+  --w3-font: 'Sora', system-ui, sans-serif;
+  --w3-font-display: 'Cormorant Garamond', Georgia, serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.web3 {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--w3-font);
+  color: var(--w3-text);
+  background: var(--w3-bg);
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Fundo animado com mesh gradient */
+.web3-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.web3-bg .orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  animation: orb-drift 20s ease-in-out infinite alternate;
+}
+
+.web3-bg .orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.4), transparent 70%);
+  top: -10%;
+  left: -5%;
+  animation-duration: 22s;
+}
+
+.web3-bg .orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.35), transparent 70%);
+  bottom: -10%;
+  right: -5%;
+  animation-duration: 18s;
+  animation-delay: -5s;
+}
+
+.web3-bg .orb-3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(94, 234, 212, 0.25), transparent 70%);
+  top: 40%;
+  left: 50%;
+  animation-duration: 25s;
+  animation-delay: -10s;
+}
+
+@keyframes orb-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 30px) scale(0.95); }
+  100% { transform: translate(15px, -15px) scale(1.02); }
+}
+
+/* Grid sutil de circuitos */
+.web3-bg .grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(192, 132, 252, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(192, 132, 252, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 30%, transparent 80%);
+}
+
+/* Nav compartilhada */
+.web3-nav {
+  position: relative;
+  z-index: 10;
+  padding: 1.25rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.web3-nav a {
+  color: var(--w3-muted);
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  transition: color 0.3s;
+}
+
+.web3-nav a:hover {
+  color: var(--w3-purple);
+}
+
+.web3-nav-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--w3-text) !important;
+  font-weight: 600;
+}
+
+.web3-nav-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--w3-glass);
+  border: 1px solid var(--w3-glass-border);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background-image: var(--w3-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Rodapé */
+.web3-footer {
+  position: relative;
+  z-index: 2;
+  padding: 2rem;
+  text-align: center;
+  border-top: 1px solid rgba(192, 132, 252, 0.08);
+  margin-top: auto;
+}
+
+.web3-footer a {
+  font-family: var(--w3-font-display);
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--w3-muted);
+  text-decoration: none;
+  display: inline-block;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid rgba(192, 132, 252, 0.25);
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.web3-footer a:hover {
+  color: var(--w3-purple);
+  border-bottom-color: var(--w3-purple);
+}
+
+/* Texto com gradiente */
+.gradient-text {
+  background-image: var(--w3-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glass card */
+.glass {
+  background: var(--w3-glass);
+  border: 1px solid var(--w3-glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+}

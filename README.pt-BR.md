@@ -233,6 +233,7 @@ Ou conecte este repositório GitHub à [Vercel](https://vercel.com) para deploys
 
 | Documento | Descricao |
 |:----------|:----------|
+| [Hub Papers (mesma identidade Ang3la.xyz)](docs/papers/index.html) | Abra localmente ou com servidor estatico — visual igual a [ang3la.xyz/papers](https://www.ang3la.xyz/papers). Rodape e nav com [link tree / bio](https://www.ang3la.xyz/bio) (`npx serve docs` nesta pasta) |
 | [Litepaper](docs/LITEPAPER.pt-BR.md) | Visao geral concisa do CronoCapilar e do protocolo Proof of Care (3-5 paginas) |
 | [Whitepaper](docs/WHITEPAPER.pt-BR.md) | Documentacao tecnica e conceitual completa (10-15 paginas) |
 

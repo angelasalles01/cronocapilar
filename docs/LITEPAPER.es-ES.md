@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Stellar-Hecho%20en%20Stellar-blue?style=for-the-badge&logo=stellar&logoColor=white" alt="Built on Stellar" />
+  <img src="https://img.shields.io/badge/Stellar-Built%20on%20Stellar-blue?style=for-the-badge&logo=stellar&logoColor=white" alt="Built on Stellar" />
 </p>
 
 <h1 align="center">CronoCapilar — Litepaper</h1>
@@ -9,6 +9,7 @@
   <strong>Version 1.0 | Marzo 2026</strong><br/>
   Angela Salles — <a href="https://ang3la.xyz">Ang3la.xyz</a>
 </p>
+
 
 ---
 

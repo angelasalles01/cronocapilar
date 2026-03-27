@@ -35,7 +35,7 @@ const translations = {
       madeWithLove: "Feito com amor",
     },
     language: {
-      pt: "Português",
+      pt: "Português (Brasil)",
       en: "English",
     },
     treatments: {
@@ -144,7 +144,7 @@ const translations = {
       madeWithLove: "Made with love",
     },
     language: {
-      pt: "Português",
+      pt: "Português (Brasil)",
       en: "English",
     },
     treatments: {
@@ -253,7 +253,7 @@ const translations = {
       madeWithLove: "Hecho con amor",
     },
     language: {
-      pt: "Português",
+      pt: "Português (Brasil)",
       en: "English",
       es: "Español",
     },
