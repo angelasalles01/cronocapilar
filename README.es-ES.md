@@ -112,8 +112,8 @@ Cada acción se convierte en una **Prueba de Cuidado** — tu pasaporte capilar 
 
 ```bash
 # 1. Clona el repositorio
-git clone https://github.com/SilvaCleverson/stellar_cronocapilar.git
-cd stellar_cronocapilar
+git clone https://github.com/angelasalles01/cronocapilar.git
+cd cronocapilar
 
 # 2. Instala las dependencias
 npm install

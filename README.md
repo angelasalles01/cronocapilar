@@ -112,8 +112,8 @@ Every action becomes a **Proof of Care** — your verifiable, on-chain hair pass
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/SilvaCleverson/stellar_cronocapilar.git
-cd stellar_cronocapilar
+git clone https://github.com/angelasalles01/cronocapilar.git
+cd cronocapilar
 
 # 2. Install dependencies
 npm install
